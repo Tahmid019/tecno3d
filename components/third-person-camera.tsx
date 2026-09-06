@@ -26,7 +26,7 @@ export function ThirdPersonCamera({
       if (document.pointerLockElement !== element) return;
 
       yaw.current -= event.movementX * 0.002;
-      pitch.current -= event.movementY * 0.002;
+      pitch.current += event.movementY * 0.002;
 
       pitch.current = THREE.MathUtils.clamp(
         pitch.current,
