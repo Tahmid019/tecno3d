@@ -17,7 +17,7 @@ const map = [
 ];
 
 function GrassFloor() {
-  const texture = useTexture("/textures/sand.jpg");
+  const texture = useTexture("/textures/sand.webp");
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set(20, 20);
 

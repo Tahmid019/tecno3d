@@ -11,7 +11,7 @@ const GRAVITY = -20, JUMP_FORCE = 8, GROUND_Y = 0;
 
 export const WalkableCharacter = forwardRef<THREE.Group>(function WalkableCharacter(_, ref) {
   const group = useRef<THREE.Group>(null);
-  const { scene, animations } = useGLTF("/models/Soldier.glb");
+  const { scene, animations } = useGLTF("/models/Soldier_comp.glb");
   const { actions } = useAnimations(animations, group);
   const [, getKeys] = useKeyboardControls();
 
@@ -94,4 +94,4 @@ export const WalkableCharacter = forwardRef<THREE.Group>(function WalkableCharac
   );
 });
 
-useGLTF.preload("/models/Soldier.glb");
+useGLTF.preload("/models/Soldier_comp.glb");
