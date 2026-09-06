@@ -30,7 +30,7 @@ export function ThirdPersonCamera({
 
       pitch.current = THREE.MathUtils.clamp(
         pitch.current,
-        -0.8,
+        -0.5,
         0.5
       );
     };
@@ -65,6 +65,11 @@ export function ThirdPersonCamera({
     cameraPosition.current
       .copy(targetPosition.current)
       .add(offset);
+
+    cameraPosition.current.y = Math.max(
+      cameraPosition.current.y,
+      0.5
+    );
 
     camera.position.lerp(
       cameraPosition.current,
