@@ -16,7 +16,7 @@ const map = [
   { name: "jump", keys: ["Space"] },
 ];
 
-function GrassFloor() {
+function Floor() {
   const texture = useTexture("/textures/sand.webp");
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set(20, 20);
@@ -33,15 +33,17 @@ export default function Experience() {
   const character = useRef<THREE.Group>(null);
 
   return (
-    <KeyboardControls map={map}>
-      <Canvas shadows camera={{ position: [0, 3, 6], fov: 50 }}>
-        <ambientLight intensity={1} />
-        <directionalLight position={[10, 15, 10]} intensity={2} castShadow />
-        <WalkableCharacter ref={character} />
-        <ThirdPersonCamera target={character} />
-        <GrassFloor />
-        <Environment preset="sunset" />
-      </Canvas>
-    </KeyboardControls>
+    <div className="h-full w-full">
+      <KeyboardControls map={map}>
+        <Canvas shadows className="h-full w-full" dpr={[1, 1.5]} camera={{ position: [0, 3, 6], fov: 50 }}>
+          <ambientLight intensity={1} />
+          <directionalLight position={[10, 15, 10]} intensity={2} castShadow />
+          <WalkableCharacter ref={character} />
+          <ThirdPersonCamera target={character} />
+          <Floor />
+          <Environment preset="sunset" />
+        </Canvas>
+      </KeyboardControls>
+    </div>
   );
 }

@@ -5,6 +5,8 @@ import { useFrame } from "@react-three/fiber";
 import { useAnimations, useGLTF, useKeyboardControls } from "@react-three/drei";
 import * as THREE from "three";
 
+import { mobileInput } from "./mobile-controls";
+
 const UP = new THREE.Vector3(0, 1, 0);
 const FORWARD = new THREE.Vector3(0, 0, -1);
 const GRAVITY = -20, JUMP_FORCE = 8, GROUND_Y = 0;
@@ -27,7 +29,14 @@ export const WalkableCharacter = forwardRef<THREE.Group>(function WalkableCharac
   useFrame(({ camera }, delta) => {
     if (!group.current) return;
 
-    const { forward, backward, left, right, run, jump } = getKeys();
+    const keys = getKeys();
+
+    const forward = keys.forward || mobileInput.forward;
+    const backward = keys.backward || mobileInput.backward;
+    const left = keys.left || mobileInput.left;
+    const right = keys.right || mobileInput.right;
+    const run = keys.run || mobileInput.run;
+    const jump = keys.jump || mobileInput.jump;
 
     if (jump && grounded.current && !jumpLocked.current) {
       velocityY.current = JUMP_FORCE;

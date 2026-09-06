@@ -4,17 +4,16 @@ import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
-interface ThirdPersonCameraProps {
+interface Props {
   target: React.RefObject<THREE.Group | null>;
 }
 
-export function ThirdPersonCamera({
-  target,
-}: ThirdPersonCameraProps) {
+export function ThirdPersonCamera({ target }: Props) {
   const { gl } = useThree();
 
   const yaw = useRef(0);
   const pitch = useRef(-0.2);
+  const touch = useRef<{ x: number; y: number } | null>(null);
 
   const targetPosition = useRef(new THREE.Vector3());
   const cameraPosition = useRef(new THREE.Vector3());
@@ -22,11 +21,9 @@ export function ThirdPersonCamera({
   useEffect(() => {
     const element = gl.domElement;
 
-    const onMouseMove = (event: MouseEvent) => {
-      if (document.pointerLockElement !== element) return;
-
-      yaw.current -= event.movementX * 0.002;
-      pitch.current += event.movementY * 0.002;
+    const rotate = (dx: number, dy: number) => {
+      yaw.current -= dx * 0.005;
+      pitch.current += dy * 0.005;
 
       pitch.current = THREE.MathUtils.clamp(
         pitch.current,
@@ -35,16 +32,60 @@ export function ThirdPersonCamera({
       );
     };
 
-    const onClick = () => {
-      element.requestPointerLock();
+    const mouseMove = (e: MouseEvent) => {
+      if (document.pointerLockElement !== element) return;
+      rotate(e.movementX, e.movementY);
     };
 
-    element.addEventListener("click", onClick);
-    document.addEventListener("mousemove", onMouseMove);
+    const mouseDown = () => {
+      if (window.matchMedia("(pointer: fine)").matches) {
+        element.requestPointerLock();
+      }
+    };
+
+    const touchStart = (e: TouchEvent) => {
+      const touchPoint = e.touches[0];
+
+      if (touchPoint.clientX < window.innerWidth / 2) return;
+
+      touch.current = {
+        x: touchPoint.clientX,
+        y: touchPoint.clientY,
+      };
+    };
+
+    const touchMove = (e: TouchEvent) => {
+      if (!touch.current) return;
+
+      const touchPoint = e.touches[0];
+      const dx = touchPoint.clientX - touch.current.x;
+      const dy = touchPoint.clientY - touch.current.y;
+
+      rotate(dx, dy);
+
+      touch.current = {
+        x: touchPoint.clientX,
+        y: touchPoint.clientY,
+      };
+    };
+
+    const touchEnd = () => {
+      touch.current = null;
+    };
+
+    element.addEventListener("click", mouseDown);
+    document.addEventListener("mousemove", mouseMove);
+
+    element.addEventListener("touchstart", touchStart, { passive: true });
+    element.addEventListener("touchmove", touchMove, { passive: true });
+    element.addEventListener("touchend", touchEnd);
 
     return () => {
-      element.removeEventListener("click", onClick);
-      document.removeEventListener("mousemove", onMouseMove);
+      element.removeEventListener("click", mouseDown);
+      document.removeEventListener("mousemove", mouseMove);
+      element.removeEventListener("touchstart", touchStart);
+      element.removeEventListener("touchmove", touchMove);
+      element.removeEventListener("touchend", touchEnd);
     };
   }, [gl]);
 
