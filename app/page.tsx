@@ -1,3 +1,7 @@
+
+"use client";
+
+import { useEffect, useState } from "react";
 import Experience from "@/components/experience";
 import { MobileControls } from "@/components/mobile-controls";
 
@@ -9,12 +13,39 @@ const controls = [
 ];
 
 export default function Page() {
+  const [isPortrait, setIsPortrait] = useState(false);
+
+  useEffect(() => {
+    const checkOrientation = () => {
+      setIsPortrait(window.innerHeight > window.innerWidth);
+    };
+
+    checkOrientation();
+
+    window.addEventListener("resize", checkOrientation);
+    window.addEventListener("orientationchange", checkOrientation);
+
+    return () => {
+      window.removeEventListener("resize", checkOrientation);
+      window.removeEventListener(
+        "orientationchange",
+        checkOrientation
+      );
+    };
+  }, []);
+
   return (
-    <main className="relative h-[100dvh] w-screen overflow-hidden">
-      <Experience />
+    <main className="relative h-[100dvh] w-screen overflow-hidden bg-black">
+      {/* 3D WORLD */}
+      <div className="absolute inset-0 z-0">
+        <Experience />
+      </div>
+
+      {/* MOBILE CONTROLS */}
       <MobileControls />
 
-      <div className="pointer-events-none hidden absolute bottom-10 left-1/2 z-10 -translate-x-1/2 text-center text-black md:block">
+      {/* DESKTOP CONTROLS */}
+      <div className="pointer-events-none absolute bottom-10 left-1/2 z-10 hidden -translate-x-1/2 text-center text-black lg:block">
         <b>CONTROLS</b>
 
         <div className="mt-4 space-y-1 text-sm">
@@ -26,19 +57,22 @@ export default function Page() {
         </div>
       </div>
 
-      <div className="rotate-device fixed inset-0 z-50 items-center justify-center text-center">
-        <div>
-          <div className="text-5xl">↻</div>
+      {/* PORTRAIT ORIENTATION OVERLAY */}
+      {isPortrait && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black px-6 text-center text-white md:hidden">
+          <div>
+            <div className="text-5xl">↻</div>
 
-          <h2 className="mt-4 text-xl font-bold">
-            Rotate your device
-          </h2>
+            <h2 className="mt-4 text-xl font-bold">
+              Rotate your device
+            </h2>
 
-          <p className="mt-2 text-sm text-white/60">
-            Please rotate to landscape mode
-          </p>
+            <p className="mt-2 text-sm text-white/60">
+              Please rotate to landscape mode
+            </p>
+          </div>
         </div>
-      </div>
+      )}
     </main>
   );
 }

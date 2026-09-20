@@ -1,106 +1,159 @@
+
 "use client";
 
-import { forwardRef, useEffect, useRef } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useRef,
+} from "react";
+import {
+  useAnimations,
+  useGLTF,
+  useKeyboardControls,
+} from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { useAnimations, useGLTF, useKeyboardControls } from "@react-three/drei";
 import * as THREE from "three";
-
 import { mobileInput } from "./mobile-controls";
 
 const UP = new THREE.Vector3(0, 1, 0);
 const FORWARD = new THREE.Vector3(0, 0, -1);
-const GRAVITY = -20, JUMP_FORCE = 8, GROUND_Y = 0;
+const GRAVITY = -20;
+const JUMP_FORCE = 8;
+const GROUND_Y = 0;
 
-export const WalkableCharacter = forwardRef<THREE.Group>(function WalkableCharacter(_, ref) {
-  const group = useRef<THREE.Group>(null);
-  const { scene, animations } = useGLTF("/models/Soldier_comp.glb");
-  const { actions } = useAnimations(animations, group);
-  const [, getKeys] = useKeyboardControls();
+export type AnimationName = "Idle" | "Walk" | "Run" | "Jump";
 
-  const current = useRef("Idle");
-  const velocityY = useRef(0);
-  const grounded = useRef(true);
-  const jumpLocked = useRef(false);
+export type CharacterState = {
+  animation: AnimationName;
+  rotationX: number;
+  rotationY: number;
+  rotationZ: number;
+};
 
-  useEffect(() => {
-    actions.Idle?.reset().fadeIn(0.2).play();
-  }, [actions]);
+type Props = {
+  stateRef?: { current: CharacterState };
+};
 
-  useFrame(({ camera }, delta) => {
-    if (!group.current) return;
+export const WalkableCharacter = forwardRef<THREE.Group, Props>(
+  function WalkableCharacter({ stateRef }, ref) {
+    const group = useRef<THREE.Group>(null);
+    const { scene, animations } = useGLTF("/models/Soldier_comp.glb");
+    const { actions } = useAnimations(animations, group);
+    const [, getKeys] = useKeyboardControls();
 
-    const keys = getKeys();
+    const current = useRef<AnimationName>("Idle");
+    const velocityY = useRef(0);
+    const grounded = useRef(true);
+    const jumpLocked = useRef(false);
 
-    const forward = keys.forward || mobileInput.forward;
-    const backward = keys.backward || mobileInput.backward;
-    const left = keys.left || mobileInput.left;
-    const right = keys.right || mobileInput.right;
-    const run = keys.run || mobileInput.run;
-    const jump = keys.jump || mobileInput.jump;
+    useEffect(() => {
+      actions.Idle?.reset().fadeIn(0.2).play();
+    }, [actions]);
 
-    if (jump && grounded.current && !jumpLocked.current) {
-      velocityY.current = JUMP_FORCE;
-      grounded.current = false;
-      jumpLocked.current = true;
-    }
+    useFrame(({ camera }, delta) => {
+      if (!group.current) return;
 
-    if (!jump) jumpLocked.current = false;
+      const keys = getKeys();
 
-    if (!grounded.current) {
-      velocityY.current += GRAVITY * delta;
-      group.current.position.y += velocityY.current * delta;
+      const forward = keys.forward || mobileInput.forward;
+      const backward = keys.backward || mobileInput.backward;
+      const left = keys.left || mobileInput.left;
+      const right = keys.right || mobileInput.right;
+      const run = keys.run || mobileInput.run;
+      const jump = keys.jump || mobileInput.jump;
 
-      if (group.current.position.y <= GROUND_Y) {
-        group.current.position.y = GROUND_Y;
-        velocityY.current = 0;
-        grounded.current = true;
+      if (jump && grounded.current && !jumpLocked.current) {
+        velocityY.current = JUMP_FORCE;
+        grounded.current = false;
+        jumpLocked.current = true;
       }
-    }
 
-    const x = Number(right) - Number(left);
-    const z = Number(backward) - Number(forward);
-    const moving = x !== 0 || z !== 0;
+      if (!jump) jumpLocked.current = false;
 
-    const next = !grounded.current ? "Jump" : moving ? run ? "Run" : "Walk" : "Idle";
+      if (!grounded.current) {
+        velocityY.current += GRAVITY * delta;
+        group.current.position.y += velocityY.current * delta;
 
-    if (next !== current.current) {
-      actions[current.current]?.fadeOut(0.15);
-      actions[next]?.reset().fadeIn(0.15).play();
-      current.current = next;
-    }
+        if (group.current.position.y <= GROUND_Y) {
+          group.current.position.y = GROUND_Y;
+          velocityY.current = 0;
+          grounded.current = true;
+        }
+      }
 
-    if (!moving) return;
+      const x = Number(right) - Number(left);
+      const z = Number(backward) - Number(forward);
+      const moving = x !== 0 || z !== 0;
 
-    const cameraDir = new THREE.Vector3();
-    const direction = new THREE.Vector3();
+      const next: AnimationName = !grounded.current
+        ? "Jump"
+        : moving
+          ? run
+            ? "Run"
+            : "Walk"
+          : "Idle";
 
-    camera.getWorldDirection(cameraDir);
-    cameraDir.y = 0;
-    cameraDir.normalize();
+      if (next !== current.current) {
+        actions[current.current]?.fadeOut(0.15);
+        actions[next]?.reset().fadeIn(0.15).play();
+        current.current = next;
+      }
 
-    const rightDir = new THREE.Vector3().crossVectors(cameraDir, UP).normalize();
+      if (stateRef) {
+        stateRef.current.animation = current.current;
+        stateRef.current.rotationX = group.current.rotation.x;
+        stateRef.current.rotationY = group.current.rotation.y;
+        stateRef.current.rotationZ = group.current.rotation.z;
+      }
 
-    direction
-      .addScaledVector(cameraDir, -z)
-      .addScaledVector(rightDir, x)
-      .normalize();
+      if (!moving) return;
 
-    const rotation = new THREE.Quaternion().setFromUnitVectors(FORWARD, direction);
+      const cameraDir = new THREE.Vector3();
+      const direction = new THREE.Vector3();
 
-    group.current.quaternion.rotateTowards(rotation, delta * 10);
-    group.current.position.addScaledVector(direction, (run ? 5 : 2) * delta);
-  });
+      camera.getWorldDirection(cameraDir);
+      cameraDir.y = 0;
+      cameraDir.normalize();
 
-  return (
-    <primitive
-      ref={(node: THREE.Group | null) => {
-        group.current = node;
-        if (typeof ref === "function") ref(node);
-        else if (ref) ref.current = node;
-      }}
-      object={scene}
-    />
-  );
-});
+      const rightDir = new THREE.Vector3()
+        .crossVectors(cameraDir, UP)
+        .normalize();
+
+      direction
+        .addScaledVector(cameraDir, -z)
+        .addScaledVector(rightDir, x)
+        .normalize();
+
+      const rotation = new THREE.Quaternion()
+        .setFromUnitVectors(FORWARD, direction);
+
+      group.current.quaternion.rotateTowards(
+        rotation,
+        delta * 10
+      );
+
+      group.current.position.addScaledVector(
+        direction,
+        (run ? 5 : 2) * delta
+      );
+
+      if (stateRef) {
+        stateRef.current.rotationY = group.current.rotation.y;
+      }
+    });
+
+    return (
+      <primitive
+        ref={(node: THREE.Group | null) => {
+          group.current = node;
+
+          if (typeof ref === "function") ref(node);
+          else if (ref) ref.current = node;
+        }}
+        object={scene}
+      />
+    );
+  }
+);
 
 useGLTF.preload("/models/Soldier_comp.glb");
